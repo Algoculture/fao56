@@ -7,5 +7,7 @@
 - FAO56rev growing degree days and GDD-based crop stages.
 - Single crop coefficient curves, climate adjustment, and crop ET.
 - Standard and water-stressed actual crop ET for single and dual coefficients.
+- Original and skin-layer dual crop coefficient evaporation balances.
+- Source-backed soil evaporation and wetted-fraction ranges.
 - Root-zone soil water balance and irrigation requirements.
 - Source-backed crop and soil data.

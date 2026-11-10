@@ -34,6 +34,7 @@ export interface CropProfile {
   id: string
   label: string
   kc: { initial: number; midSeason: number; end: number; heightM: number }
+  kcb?: { initial: number; midSeason: number; end: number; heightM?: number }
   calendarStages: StageThresholds | null
   thermal: { tBaseC: number; tUpperC: number; stages: StageThresholds | null } | null
   sources: readonly object[]
@@ -73,6 +74,8 @@ export function getCropProfile(id: string): CropProfile
 export function cropCoefficient(crop: string | CropProfile, progress: { cumulativeGdd?: number; day?: number }): { kc: number; stage: string; basis: string }
 export function adjustCropCoefficient(kc: number, climate: object): number
 export function adjustedCropCoefficient(crop: string | CropProfile, progress: object, climate: object): object & { kc: number }
+export function basalCropCoefficient(crop: string | CropProfile, progress: { cumulativeGdd?: number; day?: number }): { kcb: number; stage: string; basis: string }
+export function adjustedBasalCropCoefficient(crop: string | CropProfile, progress: object, climate: object): object & { kcb: number }
 export function cropEvapotranspiration(etoMm: number, kc: number): number
 export function calculateCropEvapotranspiration(input: object): object & { etc: number; kc: number }
 export function actualCropEvapotranspiration(etoMm: number, kc: number, ks: number): number
@@ -92,6 +95,66 @@ export function calculateActualCropEvapotranspiration(input: {
   kcStandard: number
   kcActual: number
   ks: number
+  stage: string
+  basis: string
+  adjusted?: boolean
+}
+export const SOIL_EVAPORATION_PARAMETERS: Readonly<Record<string, {
+  fieldCapacity: readonly [number, number]
+  wiltingPoint: readonly [number, number]
+  availableWater: readonly [number, number]
+  rewMm: readonly [number, number]
+  tewMm: readonly [number, number]
+  source: object
+}>>
+export const WETTED_FRACTION_RANGES: Readonly<Record<string, {
+  range: readonly [number, number]
+  source: object
+}>>
+export function maximumCropCoefficient(input: object): number
+export function totalEvaporableWater(input: {
+  fieldCapacity: number
+  wiltingPoint: number
+  evaporationDepthM: number
+}): number
+export function evaporationReductionCoefficient(depletionMm: number, tewMm: number, rewMm: number): number
+export function skinLayerStage1Fraction(input: { drewMm: number; rewMm: number; kcMax: number; etoMm: number }): number
+export function skinLayerEvaporationReductionCoefficient(input: {
+  depletionMm: number
+  tewMm: number
+  rewMm: number
+  stage1Fraction: number
+}): number
+export function vegetationCoverFraction(input: { kcb: number; kcMin: number; kcMax: number; cropHeightM: number }): number
+export function exposedWettedFraction(fractionCovered: number, fractionWetted: number, options?: { shadedDrip?: boolean }): number
+export function soilEvaporationCoefficient(input: { kr: number; kcMax: number; kcb: number; ks?: number; few: number }): number
+export function updateEvaporationLayerWaterBalance(input: object): {
+  depletionMm: number
+  deepPercolationMm: number
+  wettingMm: number
+  wettingTiming: 'early' | 'late'
+}
+export function calculateDualCropEvapotranspiration(input: object & {
+  method: 'original' | 'skin-layer'
+}): object & {
+  method: 'original' | 'skin-layer'
+  kcb: number
+  ks: number
+  kr: number
+  ke: number
+  kcMax: number
+  kcStandard: number
+  kcActual: number
+  transpirationMm: number
+  soilEvaporationMm: number
+  etcStandardMm: number
+  etcActualMm: number
+  evaporationState: object
+}
+export function calculateStagedDualCropEvapotranspiration(input: object & {
+  method: 'original' | 'skin-layer'
+  crop: string | CropProfile
+}): ReturnType<typeof calculateDualCropEvapotranspiration> & {
   stage: string
   basis: string
   adjusted?: boolean

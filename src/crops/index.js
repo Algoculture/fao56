@@ -1,3 +1,5 @@
 export * from './data.js'
 export * from './coefficients.js'
 export * from './evapotranspiration.js'
+export * from './evaporation-data.js'
+export * from './dual-coefficients.js'

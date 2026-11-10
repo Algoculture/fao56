@@ -670,6 +670,19 @@ const coefficient = adjustedCropCoefficient(
 )
 ```
 
+### `basalCropCoefficient(profileOrId, progress)`
+
+Resolves the piecewise-linear basal coefficient Kcb from a crop profile's
+`kcb` values. Progress selection and interpolation follow `cropCoefficient`:
+sourced GDD stages are preferred, with calendar days as the explicit fallback.
+Returns `{ kcb, stage, basis }`. Profiles without Kcb data throw.
+
+### `adjustedBasalCropCoefficient(profileOrId, progress, climate)`
+
+Combines staged Kcb with the FAO-56 Rev.1 Equation 7.2 climate adjustment.
+The climate fields and limits are the same as `adjustCropCoefficient`. Returns
+`{ kcb, stage, basis, adjusted }`.
+
 ### `cropEvapotranspiration(etoMm, kc)`
 
 FAO-56 Equation 58, `ETc = Kc × ET₀`.
@@ -775,6 +788,170 @@ const result = calculateActualCropEvapotranspiration({
   rawMm: 40,
 })
 ```
+
+### `SOIL_EVAPORATION_PARAMETERS`
+
+Frozen, source-backed ranges from FAO-56 Rev.1 Table 7.5 for `sand`,
+`loamy-sand`, `sandy-loam`, `loam`, `silt-loam`, `silt`,
+`silty-clay-loam`, `silty-clay`, and `clay`. Each entry contains published
+ranges for volumetric field capacity, wilting point, available water, REW, and
+TEW plus source metadata. Ranges are retained as `[minimum, maximum]`; the
+library does not select a midpoint.
+
+### `WETTED_FRACTION_RANGES`
+
+Frozen ranges of `fw` from FAO-56 Rev.1 Table 7.6 for precipitation and common
+sprinkler, basin, border, furrow, micro-spray, and drip systems. Select or
+measure a site-specific fraction before calculation.
+
+### `maximumCropCoefficient(input)`
+
+FAO-56 Rev.1 Equation 7.4. Calculates the upper limit `Kc max` after wetting.
+
+| Field | Description |
+| --- | --- |
+| `kcb` | Non-negative basal coefficient |
+| `windSpeed2mMps` | Wind at 2 m; constrained to 1–6 in the equation |
+| `minRelativeHumidityPercent` | Minimum RH; constrained to 20–80% |
+| `cropHeightM` | Positive crop height; constrained to 0.1–10 m |
+| `wetSoilCoefficient` | Wet-soil aerodynamic term; default `1.2` |
+
+The result is never less than `kcb + 0.05`. Rev.1 notes that the wet-soil term
+can be reduced to about `1.1` for daily or two-day wetting; callers must make
+that management choice explicitly.
+
+### `totalEvaporableWater(input)`
+
+FAO-56 Rev.1 Equation 7.5:
+
+```text
+TEW = 1000 × (θFC − 0.5 θWP) × Ze
+```
+
+`fieldCapacity` and `wiltingPoint` are volumetric fractions (m³/m³), and
+`evaporationDepthM` is the selected evaporation-layer depth in metres. Returns
+TEW in mm.
+
+### `evaporationReductionCoefficient(depletionMm, tewMm, rewMm)`
+
+FAO-56 Rev.1 Equation 7.6 for the original method. Returns `Kr = 1` through
+stage 1 (`De <= REW`), then decreases linearly to zero at `De = TEW`.
+
+### `skinLayerStage1Fraction(input)`
+
+FAO-56 Rev.1 Equation 7.12. Input fields are `drewMm`, `rewMm`, `kcMax`, and
+`etoMm`. Returns the fraction of the period in stage-1 evaporation from 0 to 1.
+
+### `skinLayerEvaporationReductionCoefficient(input)`
+
+FAO-56 Rev.1 Equation 7.11. Combines stage-1 and stage-2 portions of a period.
+Input fields are `depletionMm`, `tewMm`, `rewMm`, and `stage1Fraction`.
+Returns `Kr` from 0 to 1.
+
+### `vegetationCoverFraction(input)`
+
+FAO-56 Rev.1 Equation 7.8. Estimates effective vegetation cover `fc` from
+`kcb`, `kcMin`, `kcMax`, and `cropHeightM`. Returns a fraction from 0 through
+0.99. Field observations should be preferred where available.
+
+### `exposedWettedFraction(fractionCovered, fractionWetted, options)`
+
+FAO-56 Rev.1 Equation 7.7, `few = min(1 − fc, fw)`. Both inputs are fractions.
+Set `options.shadedDrip` to `true` to apply Rev.1's simple shaded-emitter
+adjustment, `fw × [1 − (2/3)fc]`.
+
+### `soilEvaporationCoefficient(input)`
+
+FAO-56 Rev.1 Equation 7.3:
+
+```text
+Ke = min(Kr × [Kc max − Ks Kcb], few × Kc max)
+```
+
+Input fields are `kr`, `kcMax`, `kcb`, optional `ks` (default `1`), and `few`.
+The result is constrained to be non-negative.
+
+### `updateEvaporationLayerWaterBalance(input)`
+
+Advances the original FAO evaporation-layer depletion using Equations 7.9 and
+7.10. Inputs are:
+
+- `previousDepletionMm` and `tewMm`;
+- precipitation, runoff, and infiltrated irrigation depths in mm;
+- `fractionWetted` (`fw`) and `few`;
+- field-average `evaporationMm`;
+- optional `transpirationFromLayerMm` (default zero); and
+- `wettingTiming`, `early` by default or `late`.
+
+Returns `{ depletionMm, deepPercolationMm, wettingMm, wettingTiming }`.
+Irrigation is localized as `I/fw`, and evaporation as `E/few`.
+
+### `calculateDualCropEvapotranspiration(input)`
+
+Calculates one daily or shorter dual-Kc period and advances the selected
+evaporation state. `method` is required and must be `original` or
+`skin-layer`; there is no default.
+
+Common required inputs:
+
+| Field | Description |
+| --- | --- |
+| `method` | Explicit evaporation method |
+| `etoMm` | Reference ET for the period, mm |
+| `kcb` | Basal crop coefficient |
+| `fractionWetted` | Selected or observed `fw` |
+| `previousDepletionMm` | Previous `De`, from 0 through TEW |
+| `tewMm`, `rewMm` | Selected evaporation capacities |
+
+Provide `kcMax` directly or provide wind, minimum RH, and crop height for
+Equation 7.4. Provide observed `fractionCovered`, or provide `kcMin` and crop
+height for Equation 7.8. The skin-layer method additionally requires
+`previousReadilyEvaporableDepletionMm` (`DREW`). Optional fields include `ks`,
+rain, runoff, irrigation, shaded-drip handling, surface-layer transpiration,
+and wetting timing.
+
+Returns an unrounded audit trail:
+
+```js
+{
+  method,
+  kcb, ks, kr, ke, kcMax,
+  kcStandard, kcActual,
+  transpirationMm,
+  soilEvaporationMm,
+  etcStandardMm,
+  etcActualMm,
+  fractionCovered,
+  fractionWetted,
+  few,
+  stage1Fraction, // null for original
+  startDepletionMm,
+  startReadilyEvaporableDepletionMm, // null for original
+  evaporationState,
+}
+```
+
+```js
+const result = calculateDualCropEvapotranspiration({
+  method: 'skin-layer',
+  etoMm: 4.5,
+  kcb: 0.15,
+  kcMax: 1.2,
+  fractionCovered: 0,
+  fractionWetted: 1,
+  previousDepletionMm: 0,
+  previousReadilyEvaporableDepletionMm: 0,
+  tewMm: 20,
+  rewMm: 9,
+})
+```
+
+### `calculateStagedDualCropEvapotranspiration(input)`
+
+Resolves Kcb from `crop`, `cumulativeGdd` or `day`, and optional `climate`,
+then delegates to `calculateDualCropEvapotranspiration`. It adds `stage`,
+`basis`, and, when climate data are supplied, `adjusted`. The crop profile must
+contain sourced `kcb` values.
 
 ## Soil water
 

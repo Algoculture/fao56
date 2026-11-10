@@ -173,9 +173,10 @@ depletion reaches RAW. It is not the amount of water that must remain in soil.
 ## Scope
 
 The first release implements daily grass-reference ETo, Hargreaves fallback,
-single Kc curves, Rev.1 GDD stages, standard and water-stressed actual ETc,
-daily root-zone balance, and net/gross irrigation need. Complete dual
-`Kcb + Ke`, salinity, remote sensing, and hourly models are not yet included.
+single and dual Kc curves, both Rev.1 soil-evaporation methods, Rev.1 GDD
+stages, standard and water-stressed actual ETc, daily root-zone balance, and
+net/gross irrigation need. Salinity, remote sensing, and hourly ET₀ models are
+not yet included.
 
 ## References
 

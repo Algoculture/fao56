@@ -6,10 +6,10 @@ function resolveProfile(profileOrId) {
   return typeof profileOrId === 'string' ? getCropProfile(profileOrId) : profileOrId
 }
 
-/** Piecewise-linear FAO single crop coefficient (Eq. 66). */
-export function cropCoefficient(profileOrId, { cumulativeGdd, day } = {}) {
+function stagedCoefficient(profileOrId, coefficientName, { cumulativeGdd, day } = {}) {
   const profile = resolveProfile(profileOrId)
-  if (!profile?.kc) throw new TypeError('a crop profile with kc values is required')
+  const coefficients = profile?.[coefficientName]
+  if (!coefficients) throw new TypeError(`a crop profile with ${coefficientName} values is required`)
 
   let progress
   let thresholds
@@ -33,18 +33,28 @@ export function cropCoefficient(profileOrId, { cumulativeGdd, day } = {}) {
   const endDevelopment = endInitial + thresholds.development
   const endMid = endDevelopment + thresholds.midSeason
 
-  let kc
-  if (stage === 'initial') kc = profile.kc.initial
+  let value
+  if (stage === 'initial') value = coefficients.initial
   else if (stage === 'development') {
     const fraction = thresholds.development === 0 ? 1 : (progress - endInitial) / thresholds.development
-    kc = profile.kc.initial + fraction * (profile.kc.midSeason - profile.kc.initial)
-  } else if (stage === 'mid-season') kc = profile.kc.midSeason
+    value = coefficients.initial + fraction * (coefficients.midSeason - coefficients.initial)
+  } else if (stage === 'mid-season') value = coefficients.midSeason
   else if (stage === 'late-season') {
     const fraction = thresholds.lateSeason === 0 ? 1 : (progress - endMid) / thresholds.lateSeason
-    kc = profile.kc.midSeason + fraction * (profile.kc.end - profile.kc.midSeason)
-  } else kc = profile.kc.end
+    value = coefficients.midSeason + fraction * (coefficients.end - coefficients.midSeason)
+  } else value = coefficients.end
 
-  return { kc, stage, basis }
+  return { [coefficientName]: value, stage, basis }
+}
+
+/** Piecewise-linear FAO single crop coefficient (Eq. 6.20). */
+export function cropCoefficient(profileOrId, progress) {
+  return stagedCoefficient(profileOrId, 'kc', progress)
+}
+
+/** Piecewise-linear FAO basal crop coefficient (Eq. 6.20 applied to Kcb). */
+export function basalCropCoefficient(profileOrId, progress) {
+  return stagedCoefficient(profileOrId, 'kcb', progress)
 }
 
 /** FAO-56 Eq. 62/65 climate adjustment for Kc mid or Kc end. */
@@ -81,4 +91,28 @@ export function adjustedCropCoefficient(profileOrId, progress, climate) {
     endSeason: result.stage !== 'mid-season',
   })
   return { ...result, kc, adjusted: kc !== result.kc }
+}
+
+/** Resolve staged Kcb and apply the FAO-56 Rev.1 Eq. 7.2 climate adjustment. */
+export function adjustedBasalCropCoefficient(profileOrId, progress, climate) {
+  const profile = resolveProfile(profileOrId)
+  const unadjusted = basalCropCoefficient(profile, progress)
+  if (unadjusted.stage === 'initial') return { ...unadjusted, adjusted: false }
+  const cropHeightM = climate.cropHeightM ?? profile.kcb.heightM ?? profile.kc?.heightM
+  const midSeason = adjustCropCoefficient(profile.kcb.midSeason, {
+    ...climate,
+    cropHeightM,
+    endSeason: false,
+  })
+  const end = adjustCropCoefficient(profile.kcb.end, {
+    ...climate,
+    cropHeightM,
+    endSeason: true,
+  })
+  const adjustedProfile = {
+    ...profile,
+    kcb: { ...profile.kcb, midSeason, end },
+  }
+  const result = basalCropCoefficient(adjustedProfile, progress)
+  return { ...result, adjusted: result.kcb !== unadjusted.kcb }
 }
