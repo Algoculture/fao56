@@ -7,15 +7,64 @@ The scientific baseline is **FAO Irrigation and Drainage Paper 56, Rev.1
 (2025)**. Original 1998 equations and tables remain in use where Rev.1 retains
 them. The package uses `ETo` rather than the ambiguous term “potential ET/ETP”.
 
-> The package is currently `UNLICENSED`. Choose a licence before publishing it.
+> The package is currently `UNLICENSED` and is not published to the npm
+> registry. Choose a licence before distributing it outside its intended users.
 
 ## Install
 
+Node.js 20 or newer and ECMAScript modules are required.
+
+### From a local checkout
+
+From the application that will use the library, install the path to this
+repository:
+
 ```sh
-npm install @algoculture/fao56
+npm install --save ../path/to/fao56
 ```
 
-Node.js 20 or newer and ECMAScript modules are required.
+For example, with the current Pluviose and Algoculture checkout layout:
+
+```sh
+npm install --save ../algoculture/fao56
+```
+
+This records a `file:` dependency in the consuming application's
+`package.json`.
+
+### Directly from GitHub
+
+```sh
+npm install --save git+https://github.com/Algoculture/fao56.git#main
+```
+
+Pin a commit or tag instead of `main` for reproducible installations:
+
+```sh
+npm install --save git+https://github.com/Algoculture/fao56.git#COMMIT_OR_TAG
+```
+
+Both installation methods expose the package as `@algoculture/fao56`; the
+import statements below are therefore the same. Running
+`npm install @algoculture/fao56` without a path or Git URL will not work while
+the package remains unpublished.
+
+## Documentation
+
+- [Complete API reference](docs/API.md): every public function, constant,
+  input, output, unit, default, and validation rule.
+- The sections below provide end-to-end examples for the main workflows.
+
+Public APIs can be imported from the package root or from focused subpaths:
+
+```js
+import { calculateDailyEto } from '@algoculture/fao56'
+import { calculateDailyEto as calculateEto } from '@algoculture/fao56/eto'
+import { growingDegreeDays } from '@algoculture/fao56/phenology'
+import { getCropProfile } from '@algoculture/fao56/crops'
+import { totalAvailableWaterForSoil } from '@algoculture/fao56/soil'
+import { irrigationRequirement } from '@algoculture/fao56/irrigation'
+```
 
 ## Daily reference evapotranspiration
 
