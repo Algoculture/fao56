@@ -1,0 +1,40 @@
+{
+  "name": "@algoculture/fao56",
+  "version": "0.1.0",
+  "description": "Dependency-free FAO-56 reference evapotranspiration, crop water use, GDD, soil water balance, and irrigation calculations",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./eto": "./src/eto/index.js",
+    "./phenology": "./src/phenology/index.js",
+    "./crops": "./src/crops/index.js",
+    "./soil": "./src/soil/index.js",
+    "./irrigation": "./src/irrigation/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
+  },
+  "keywords": [
+    "fao56",
+    "evapotranspiration",
+    "penman-monteith",
+    "agronomy",
+    "irrigation",
+    "gdd"
+  ],
+  "license": "UNLICENSED"
+}
