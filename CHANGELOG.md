@@ -9,5 +9,7 @@
 - Standard and water-stressed actual crop ET for single and dual coefficients.
 - Original and skin-layer dual crop coefficient evaporation balances.
 - Source-backed soil evaporation and wetted-fraction ranges.
+- Complete Rev.1 crop, thermal-time, basal-coefficient, and depletion catalogs.
+- Annex 8 Kcb-proportional dynamic roots with range-validated TAW, RAW, and Ks.
 - Root-zone soil water balance and irrigation requirements.
 - Source-backed crop and soil data.

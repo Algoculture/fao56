@@ -30,14 +30,49 @@ export interface StageThresholds {
   lateSeason: number
 }
 
+export interface PublishedBound {
+  operator: '<' | '>'
+  value: number
+}
+
+export type PublishedValue = number | readonly [number, number] | PublishedBound | null
+
+export interface SourceReference {
+  edition: string
+  year: number
+  table?: string
+  tables?: readonly (string | number)[]
+  license?: string
+  doi?: string
+  [key: string]: unknown
+}
+
 export interface CropProfile {
   id: string
   label: string
-  kc: { initial: number; midSeason: number; end: number; heightM: number }
-  kcb?: { initial: number; midSeason: number; end: number; heightM?: number }
+  kc: { initial: number; midSeason: number; end: number; heightM: number | null }
+  kcb?: { initial: number; midSeason: number; end: number; heightM?: number | null } | null
+  rootDepthMRange?: readonly [number, number] | null
+  maximumHeightM?: PublishedValue
+  maximumGroundCover?: PublishedValue
+  depletionFraction?: number | null
   calendarStages: StageThresholds | null
   thermal: { tBaseC: number; tUpperC: number; stages: StageThresholds | null } | null
-  sources: readonly object[]
+  sources: readonly SourceReference[]
+  fieldSources?: Readonly<Record<string, SourceReference | null>> | null
+}
+
+export interface RevisedCropCatalogRecord {
+  id: string
+  label: string
+  category: 'vegetable' | 'field' | 'woody' | 'grassland' | 'wetland'
+  kc: { initial: number; midSeason: number; end: number }
+  kcb: { initial: number; midSeason: number; end: number } | null
+  maximumHeightM: PublishedValue
+  maximumRootDepthM: PublishedValue
+  maximumGroundCover: PublishedValue
+  averageKc: PublishedValue
+  sources: readonly SourceReference[]
 }
 
 export function atmosphericPressure(elevationM: number): number
@@ -71,6 +106,37 @@ export function growthStage(cumulative: number, thresholds: StageThresholds): st
 export function growthStageProgress(cumulative: number, thresholds: StageThresholds): object
 export const CROP_PROFILES: Readonly<Record<string, CropProfile>>
 export function getCropProfile(id: string): CropProfile
+export const REV1_CROP_CATALOG: Readonly<Record<string, RevisedCropCatalogRecord>>
+export const REV1_DEPLETION_FRACTIONS: Readonly<Record<string, {
+  id: string
+  label: string
+  depletionFraction: number | null
+  threshold: { fraction: number; basis: string } | null
+  source: SourceReference
+}>>
+export const REV1_THERMAL_THRESHOLDS: Readonly<Record<string, {
+  id: string
+  label: string
+  tBaseC: number
+  tUpperC: number
+  source: SourceReference
+}>>
+export const REV1_GDD_STAGES: Readonly<Record<string, {
+  id: string
+  label: string
+  season: string
+  stages: StageThresholds
+  totalGdd: number
+  source: SourceReference
+}>>
+export const BASAL_COEFFICIENT_GUIDANCE: readonly Readonly<{
+  id: string
+  stage: 'initial' | 'mid-season' | 'end-season'
+  groundCondition: string
+  rule: Readonly<Record<string, unknown>>
+  furtherAdjustment: string | null
+  source: SourceReference
+}>[]
 export function cropCoefficient(crop: string | CropProfile, progress: { cumulativeGdd?: number; day?: number }): { kc: number; stage: string; basis: string }
 export function adjustCropCoefficient(kc: number, climate: object): number
 export function adjustedCropCoefficient(crop: string | CropProfile, progress: object, climate: object): object & { kc: number }
@@ -158,6 +224,38 @@ export function calculateStagedDualCropEvapotranspiration(input: object & {
   stage: string
   basis: string
   adjusted?: boolean
+}
+export function selectMaximumRootDepth(crop: string | CropProfile, maximumRootDepthM: number): number
+export function rootDepthFromBasalCoefficient(input: {
+  kcb: number
+  kcbInitial: number
+  kcbMid: number
+  initialRootDepthM: number
+  maximumRootDepthM: number
+  previousRootDepthM?: number
+  stage?: 'initial' | 'development' | 'mid-season' | 'late-season' | 'complete'
+}): number
+export function calculateDynamicRootZone(input: {
+  crop: string | CropProfile
+  kcb: number
+  kcbInitial?: number
+  kcbMid?: number
+  stage?: 'initial' | 'development' | 'mid-season' | 'late-season' | 'complete'
+  initialRootDepthM: number
+  maximumRootDepthM: number
+  previousRootDepthM?: number
+  fieldCapacityMmPerM: number
+  wiltingPointMmPerM: number
+  depletionFraction?: number
+  depletionMm: number
+}): {
+  rootDepthM: number
+  rootDepthIncreaseM: number
+  maximumRootDepthM: number
+  tawMm: number
+  rawMm: number
+  ks: number
+  depletionFraction: number
 }
 export const SOIL_PROPERTIES: Readonly<Record<string, object>>
 export function getSoilProperties(id: string): object

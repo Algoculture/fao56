@@ -1,22 +1,79 @@
+import { REV1_CROP_CATALOG, REV1_DEPLETION_FRACTIONS } from './revised-catalog.js'
+
 const KC_SOURCE = Object.freeze({ edition: 'FAO-56', year: 1998, tables: [11, 12] })
 const GDD_SOURCE = Object.freeze({
-  edition: 'FAO-56 Rev.1 companion guidance',
+  edition: 'FAO-56 Rev.1',
   year: 2025,
-  authors: 'Paredes et al.',
-  tables: [1, 2, 3, 5, 6],
+  tables: ['6.10', '6.11'],
+  license: 'CC BY 4.0',
+  doi: '10.4060/cd6621en',
 })
 
 function freezeProfile(profile) {
   return Object.freeze({
     ...profile,
     kc: Object.freeze(profile.kc),
+    kcb: profile.kcb ? Object.freeze(profile.kcb) : null,
+    rootDepthMRange: profile.rootDepthMRange ? Object.freeze(profile.rootDepthMRange) : null,
+    maximumHeightM: profile.maximumHeightM && typeof profile.maximumHeightM === 'object'
+      ? Object.freeze(profile.maximumHeightM)
+      : (profile.maximumHeightM ?? null),
+    maximumGroundCover: profile.maximumGroundCover && typeof profile.maximumGroundCover === 'object'
+      ? Object.freeze(profile.maximumGroundCover)
+      : (profile.maximumGroundCover ?? null),
     calendarStages: profile.calendarStages ? Object.freeze(profile.calendarStages) : null,
     thermal: profile.thermal ? Object.freeze({
       ...profile.thermal,
       stages: profile.thermal.stages ? Object.freeze(profile.thermal.stages) : null,
     }) : null,
     sources: Object.freeze(profile.sources ?? [KC_SOURCE, GDD_SOURCE]),
+    fieldSources: profile.fieldSources ? Object.freeze(profile.fieldSources) : null,
   })
+}
+
+// Exact Rev.1 rows selected to enrich the stable legacy IDs without changing
+// their existing Kc or calendar/GDD behaviour.
+const revisedMetadata = {
+  eggplant: ['eggplant', 'eggplant'],
+  cucumber: ['cucumber-fresh-market', 'cucumber'],
+  zucchini: ['zucchini-squash', 'zucchini-squash'],
+  melon: ['melon', 'melon'],
+  'melon-long': ['melon', 'melon'],
+  pepper: ['bell-pepper', 'bell-and-chili-pepper'],
+  pumpkin: ['pumpkin-winter-squash', 'pumpkin-winter-squash'],
+  tomato: ['tomato-fresh-market', 'tomato'],
+  'tomato-industry': ['tomato-for-processing', 'tomato'],
+  cabbage: ['common-cabbage', 'common-cabbage'],
+  spinach: ['spinach', 'spinach'],
+  lettuce: ['lettuce', 'lettuce'],
+  'lettuce-long': ['lettuce', 'lettuce'],
+  garlic: ['garlic', 'garlic'],
+  'garlic-long': ['garlic', 'garlic'],
+  broadBean: ['fava-bean-fresh', 'fava-bean'],
+  bean: ['common-bean-dry', 'common-bean'],
+  'bean-long': ['common-bean-dry', 'common-bean'],
+  onion: ['onions-dry', 'onions'],
+  pea: ['pea-fresh', 'pea'],
+  'pea-industry': ['pea-fresh', 'pea'],
+  leek: ['leek', 'leek'],
+  beet: ['table-beets', 'table-beets'],
+  carrot: ['carrots', 'carrots'],
+  potato: ['potato-short-season', 'potato'],
+  'potato-long': ['potato-long-season', 'potato'],
+  radish: ['radish', 'radish'],
+  barley: ['barley', 'barley'],
+  'barley-long': ['barley', 'barley'],
+  wheat: ['wheat-common-winter-low-grain-moisture-at-harvest', 'wheat-common'],
+  'wheat-winter-long': ['wheat-common-winter-low-grain-moisture-at-harvest', 'wheat-common'],
+  'wheat-spring': ['wheat-common-spring-low-grain-moisture-at-harvest', 'wheat-common'],
+  maize: ['maize-grain-high-grain-moisture-at-harvest', 'maize'],
+  'maize-long': ['maize-grain-high-grain-moisture-at-harvest', 'maize'],
+  asparagus: ['asparagus', 'asparagus'],
+  strawberry: ['strawberries', 'strawberries'],
+  lawn: ['turf-grasses-lawns', 'turf-grass-cool-season-grass'],
+  orchard: ['apple-medium-central-leader-1-500-3-000-pl-ha-1', 'apple'],
+  vineyard: ['wine-grapes-medium-vsp-single-double-guyot-gdc-single-bilateral-cordon-lyre-y-trellis-2-000-3-300-pl', 'grapes-wine'],
+  'vineyard-late': ['wine-grapes-medium-vsp-single-double-guyot-gdc-single-bilateral-cordon-lyre-y-trellis-2-000-3-300-pl', 'grapes-wine'],
 }
 
 const rawProfiles = {
@@ -62,20 +119,73 @@ const rawProfiles = {
   'vineyard-late': ['Wine grapes, late maturation', [.30, .70, .45, 1.5], [20, 50, 90, 20], [10, 35], [465, 1145, 800, 590]],
 }
 
-/** Audited crop profiles. GDD stages are null when Rev.1 provides no standard. */
-export const CROP_PROFILES = Object.freeze(Object.fromEntries(
-  Object.entries(rawProfiles).map(([id, [label, kc, calendar, thermal, gdd]]) => [id, freezeProfile({
-    id,
-    label,
-    kc: { initial: kc[0], midSeason: kc[1], end: kc[2], heightM: kc[3] },
-    calendarStages: { initial: calendar[0], development: calendar[1], midSeason: calendar[2], lateSeason: calendar[3] },
-    thermal: thermal ? {
-      tBaseC: thermal[0],
-      tUpperC: thermal[1],
-      stages: gdd ? { initial: gdd[0], development: gdd[1], midSeason: gdd[2], lateSeason: gdd[3] } : null,
-    } : null,
-  })]),
-))
+const catalogProfiles = Object.fromEntries(Object.values(REV1_CROP_CATALOG).map(record => {
+  const heightM = typeof record.maximumHeightM === 'number' ? record.maximumHeightM : null
+  const rootDepthMRange = Array.isArray(record.maximumRootDepthM)
+    ? record.maximumRootDepthM
+    : (typeof record.maximumRootDepthM === 'number'
+        ? [record.maximumRootDepthM, record.maximumRootDepthM]
+        : null)
+  return [record.id, freezeProfile({
+    id: record.id,
+    label: record.label,
+    kc: { ...record.kc, heightM },
+    kcb: record.kcb ? { ...record.kcb, heightM } : null,
+    rootDepthMRange,
+    maximumHeightM: record.maximumHeightM,
+    maximumGroundCover: record.maximumGroundCover,
+    depletionFraction: null,
+    calendarStages: null,
+    thermal: null,
+    sources: record.sources,
+    fieldSources: {
+      kc: record.sources[0],
+      kcb: record.sources[1] ?? null,
+      rootDepth: rootDepthMRange ? record.sources[0] : null,
+      depletionFraction: null,
+    },
+  })]
+}))
+
+const legacyProfiles = Object.fromEntries(
+  Object.entries(rawProfiles).map(([id, [label, kc, calendar, thermal, gdd]]) => {
+    const [catalogId, depletionId] = revisedMetadata[id]
+    const revised = REV1_CROP_CATALOG[catalogId]
+    const depletion = REV1_DEPLETION_FRACTIONS[depletionId]
+    const rootDepthMRange = Array.isArray(revised.maximumRootDepthM)
+      ? revised.maximumRootDepthM
+      : (typeof revised.maximumRootDepthM === 'number'
+          ? [revised.maximumRootDepthM, revised.maximumRootDepthM]
+          : null)
+    return [id, freezeProfile({
+      id,
+      label,
+      kc: { initial: kc[0], midSeason: kc[1], end: kc[2], heightM: kc[3] },
+      kcb: revised.kcb ? { ...revised.kcb, heightM: kc[3] } : null,
+      rootDepthMRange,
+      maximumHeightM: revised.maximumHeightM,
+      maximumGroundCover: revised.maximumGroundCover,
+      depletionFraction: depletion?.depletionFraction ?? null,
+      calendarStages: { initial: calendar[0], development: calendar[1], midSeason: calendar[2], lateSeason: calendar[3] },
+      thermal: thermal ? {
+        tBaseC: thermal[0],
+        tUpperC: thermal[1],
+        stages: gdd ? { initial: gdd[0], development: gdd[1], midSeason: gdd[2], lateSeason: gdd[3] } : null,
+      } : null,
+      fieldSources: {
+        kc: KC_SOURCE,
+        kcb: revised.kcb ? revised.sources.find(source => source.table.startsWith('7.')) : null,
+        rootDepth: rootDepthMRange ? revised.sources[0] : null,
+        depletionFraction: depletion?.source ?? null,
+      },
+    })]
+  }),
+)
+
+/** Audited legacy profiles plus every Rev.1 crop-table row under kebab-case IDs. */
+export const CROP_PROFILES = Object.freeze({ ...catalogProfiles, ...legacyProfiles })
+
+export { REV1_CROP_CATALOG, REV1_DEPLETION_FRACTIONS }
 
 export function getCropProfile(id) {
   const profile = CROP_PROFILES[id]

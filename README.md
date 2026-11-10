@@ -130,6 +130,33 @@ Bundled data distinguishes published GDD thresholds from calendar-only
 profiles. A GDD calculation fails when a crop has no sourced stage thresholds;
 provide `day` or a custom profile instead of silently using invented values.
 
+The package includes every crop row and published range in Rev.1 Tables
+6.1–6.5, 6.10–6.12, 7.1–7.4, and 8.1–8.4. Missing values remain `null`; ranges
+are not replaced by midpoints.
+
+## Dynamic root zone
+
+```js
+import { calculateDynamicRootZone } from '@algoculture/fao56'
+
+const rootZone = calculateDynamicRootZone({
+  crop: 'tomato',
+  kcb: 0.6,
+  stage: 'development',
+  initialRootDepthM: 0.2,
+  maximumRootDepthM: 0.8, // explicitly selected within the published range
+  previousRootDepthM: 0.2,
+  fieldCapacityMmPerM: 200,
+  wiltingPointMmPerM: 100,
+  depletionMm: 30,
+})
+```
+
+Annex 8 rooting grows in proportion to Kcb, reaches the selected maximum by
+mid-season, and never decreases relative to the previous supplied depth. The
+library validates a site-specific maximum against the crop's published range;
+it never chooses one automatically.
+
 ## Soil balance and irrigation
 
 ```js
@@ -169,6 +196,7 @@ depletion reaches RAW. It is not the amount of water that must remain in soil.
 - Missing-data estimation methods are reported in results.
 - Invalid dimensions and physically impossible values throw errors.
 - Crop profiles carry source metadata and can be replaced by local profiles.
+- Published ranges and absent values are preserved without inferred values.
 
 ## Scope
 
@@ -184,8 +212,13 @@ not yet included.
   crop water requirements*, second edition, FAO Irrigation and Drainage Paper
   No. 56 Rev.1, DOI `10.4060/cd6621en`.
 - Allen, Pereira, Raes & Smith (1998), FAO Irrigation and Drainage Paper 56.
-- Paredes et al. (2025), FAO56rev companion guidance for crop-specific GDD
-  thresholds and segmented Kc curves.
+
+### Data attribution
+
+Rev.1 table data are adapted from *Crop evapotranspiration — Guidelines for
+computing crop water requirements*, second edition, © FAO 2025, licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), DOI
+`10.4060/cd6621en`. Record-level metadata identifies the source table.
 
 ## Test
 

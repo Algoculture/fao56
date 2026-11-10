@@ -573,7 +573,8 @@ These exports are available from `@algoculture/fao56/crops`.
 
 ### `CROP_PROFILES`
 
-A frozen record of 40 audited crop profiles. Keys are:
+A frozen record combining every Rev.1 Tables 6.1–6.5 row with the 40 stable
+legacy profile IDs. The legacy IDs are:
 
 ```text
 eggplant, cucumber, zucchini, melon, melon-long, pepper, pumpkin, tomato,
@@ -591,6 +592,11 @@ Each profile has this shape:
   id,
   label,
   kc: { initial, midSeason, end, heightM },
+  kcb: { initial, midSeason, end, heightM } | null,
+  rootDepthMRange: [minimum, maximum] | null,
+  maximumHeightM,
+  maximumGroundCover,
+  depletionFraction,
   calendarStages: { initial, development, midSeason, lateSeason },
   thermal: {
     tBaseC,
@@ -598,8 +604,15 @@ Each profile has this shape:
     stages: { initial, development, midSeason, lateSeason } | null,
   } | null,
   sources,
+  fieldSources,
 }
 ```
+
+Published ranges remain two-element arrays. Published `<` and `>` bounds remain
+`{ operator, value }`; absent values are `null`. The original 40 IDs retain
+their existing Kc, calendars, and thermal behaviour while exposing Rev.1 Kcb,
+root-depth, ground-cover, and depletion metadata where published. New table-row
+IDs are kebab-case.
 
 `thermal.stages === null` means no sourced standard GDD segmentation is
 available. Do not infer GDD stages from calendar lengths.
@@ -607,6 +620,45 @@ available. Do not infer GDD stages from calendar lengths.
 ```js
 const tomato = CROP_PROFILES.tomato
 ```
+
+### `REV1_CROP_CATALOG`
+
+The source-faithful 412-row catalog from Rev.1 Tables 6.1–6.5, joined to Kcb
+and maximum ground cover from Tables 7.1–7.3 where available. Each record
+contains its kebab-case ID, source label, category, Kc, nullable Kcb, published
+height/root/cover values, nullable seasonal-average Kc, and field-level table
+provenance. It contains 102 vegetable, 69 field, 181 woody, 23 grassland, and
+37 wetland records.
+
+No midpoint is selected for a published range. In particular, callers must
+select a site-specific maximum root depth before root-zone calculations.
+
+### `REV1_DEPLETION_FRACTIONS`
+
+All 192 entries from Rev.1 Tables 8.1–8.4. Numeric entries expose
+`depletionFraction`. The two rice entries defined relative to saturation or
+field-capacity water content retain `depletionFraction: null` and expose their
+published `threshold` instead of inventing a p value.
+
+### `REV1_THERMAL_THRESHOLDS`
+
+All 114 base/upper temperature pairs from Rev.1 Table 6.10. Each keyed record
+contains `{ id, label, tBaseC, tUpperC, source }`.
+
+### `REV1_GDD_STAGES`
+
+All 117 season rows from Rev.1 Tables 6.11 and 6.12. Each record contains its
+published season descriptor, four stage lengths, total GDD, and exact table
+provenance. Table 6.12 minimum/maximum-season rows remain separate and values
+are not reordered when an individual published stage is non-monotonic.
+
+### `BASAL_COEFFICIENT_GUIDANCE`
+
+The complete nine-row guidance of Rev.1 Table 7.4 for deriving Kcb when a
+selected publication does not provide it. Rules retain fixed values, ranges,
+Kc offsets, and required climate adjustments as structured metadata. These
+rules are not applied automatically because ground condition and wetting
+practice are site decisions.
 
 ### `getCropProfile(id)`
 
@@ -952,6 +1004,65 @@ Resolves Kcb from `crop`, `cumulativeGdd` or `day`, and optional `climate`,
 then delegates to `calculateDualCropEvapotranspiration`. It adds `stage`,
 `basis`, and, when climate data are supplied, `adjusted`. The crop profile must
 contain sourced `kcb` values.
+
+### `selectMaximumRootDepth(profileOrId, maximumRootDepthM)`
+
+Validates a caller-selected site-specific maximum root depth against the
+profile's published Rev.1 range. It returns the selected depth unchanged.
+Values outside the range, or profiles with no published root-depth range,
+throw `RangeError`; the package never silently selects a range midpoint.
+
+### `rootDepthFromBasalCoefficient(input)`
+
+Implements original FAO-56 Annex 8 Equations 8-1 and 8-2. Required fields are
+`kcb`, `kcbInitial`, `kcbMid`, `initialRootDepthM`, and
+`maximumRootDepthM`. `previousRootDepthM` defaults to the initial depth, and
+`stage` may be `initial`, `development`, `mid-season`, `late-season`, or
+`complete`.
+
+During development, depth grows in proportion to
+`(Kcb − Kcb initial) / (Kcb mid − Kcb initial)`. It never falls below the
+supplied previous depth and is forced to the maximum by mid-season. The initial
+and maximum depths are caller inputs; this function does not infer either.
+
+### `calculateDynamicRootZone(input)`
+
+Combines Annex 8 root growth with Rev.1 Equations 8.3–8.5. Inputs are:
+
+- `crop`, current `kcb`, and optional Kcb initial/mid overrides;
+- current `stage`, caller-selected initial and maximum root depths, and optional
+  previous root depth;
+- field-capacity and wilting-point storage in mm/m;
+- current root-zone `depletionMm`; and
+- optional `depletionFraction`, defaulting to the profile's published p.
+
+The selected maximum is validated against the crop range. Returns:
+
+```js
+{
+  rootDepthM,
+  rootDepthIncreaseM,
+  maximumRootDepthM,
+  tawMm,
+  rawMm,
+  ks,
+  depletionFraction,
+}
+```
+
+```js
+const rootZone = calculateDynamicRootZone({
+  crop: 'tomato',
+  kcb: 0.6,
+  stage: 'development',
+  initialRootDepthM: 0.2,
+  maximumRootDepthM: 0.8, // selected from tomato's published 0.6–1.2 m range
+  previousRootDepthM: 0.2,
+  fieldCapacityMmPerM: 200,
+  wiltingPointMmPerM: 100,
+  depletionMm: 30,
+})
+```
 
 ## Soil water
 
