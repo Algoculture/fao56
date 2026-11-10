@@ -117,6 +117,7 @@ export function calculatePenmanMonteithDaily(input) {
       radiationMethod = 'sunshine-estimate'
     } else if (rs == null) {
       rs = solarRadiationFromTemperature(ra, tMinC, tMaxC, coastal ? 0.19 : 0.16)
+      rs = Math.min(rs, rso)
       radiationMethod = 'temperature-estimate'
     }
     rns = netShortwaveRadiation(rs, albedo)

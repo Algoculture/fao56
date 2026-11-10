@@ -117,7 +117,8 @@ export function netLongwaveRadiation({
 
   const tMaxK = tMaxC + 273.16
   const tMinK = tMinC + 273.16
-  const cloudiness = 1.35 * Math.min(1, solarRadiationMJ / clearSkyRadiationMJ) - 0.35
+  const relativeSolarRadiation = clamp(solarRadiationMJ / clearSkyRadiationMJ, 0.3, 1)
+  const cloudiness = 1.35 * relativeSolarRadiation - 0.35
   const humidity = 0.34 - 0.14 * Math.sqrt(actualVapourPressureKPa)
   return Math.max(0, STEFAN_BOLTZMANN * (Math.pow(tMaxK, 4) + Math.pow(tMinK, 4)) / 2 * humidity * cloudiness)
 }

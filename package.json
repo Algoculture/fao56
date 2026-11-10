@@ -10,11 +10,26 @@
       "types": "./src/index.d.ts",
       "import": "./src/index.js"
     },
-    "./eto": "./src/eto/index.js",
-    "./phenology": "./src/phenology/index.js",
-    "./crops": "./src/crops/index.js",
-    "./soil": "./src/soil/index.js",
-    "./irrigation": "./src/irrigation/index.js"
+    "./eto": {
+      "types": "./src/eto/index.d.ts",
+      "import": "./src/eto/index.js"
+    },
+    "./phenology": {
+      "types": "./src/phenology/index.d.ts",
+      "import": "./src/phenology/index.js"
+    },
+    "./crops": {
+      "types": "./src/crops/index.d.ts",
+      "import": "./src/crops/index.js"
+    },
+    "./soil": {
+      "types": "./src/soil/index.d.ts",
+      "import": "./src/soil/index.js"
+    },
+    "./irrigation": {
+      "types": "./src/irrigation/index.d.ts",
+      "import": "./src/irrigation/index.js"
+    }
   },
   "files": [
     "src",
