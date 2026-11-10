@@ -8,4 +8,7 @@ export {
   adjustedCropCoefficient,
   cropEvapotranspiration,
   calculateCropEvapotranspiration,
+  actualCropEvapotranspiration,
+  actualDualCropEvapotranspiration,
+  calculateActualCropEvapotranspiration,
 } from '../index.js'

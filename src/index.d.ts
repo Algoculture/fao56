@@ -75,6 +75,27 @@ export function adjustCropCoefficient(kc: number, climate: object): number
 export function adjustedCropCoefficient(crop: string | CropProfile, progress: object, climate: object): object & { kc: number }
 export function cropEvapotranspiration(etoMm: number, kc: number): number
 export function calculateCropEvapotranspiration(input: object): object & { etc: number; kc: number }
+export function actualCropEvapotranspiration(etoMm: number, kc: number, ks: number): number
+export function actualDualCropEvapotranspiration(etoMm: number, kcb: number, ke: number, ks: number): number
+export function calculateActualCropEvapotranspiration(input: {
+  etoMm: number
+  crop: string | CropProfile
+  cumulativeGdd?: number
+  day?: number
+  climate?: object
+  depletionMm: number
+  tawMm: number
+  rawMm: number
+}): {
+  etcStandardMm: number
+  etcActualMm: number
+  kcStandard: number
+  kcActual: number
+  ks: number
+  stage: string
+  basis: string
+  adjusted?: boolean
+}
 export const SOIL_PROPERTIES: Readonly<Record<string, object>>
 export function getSoilProperties(id: string): object
 export function totalAvailableWater(input: { fieldCapacityMmPerM: number; wiltingPointMmPerM: number; rootDepthM: number }): number

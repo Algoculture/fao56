@@ -682,6 +682,35 @@ FAO-56 Equation 58, `ETc = Kc × ET₀`.
 const etc = cropEvapotranspiration(5.2, 1.15)
 ```
 
+### `actualCropEvapotranspiration(etoMm, kc, ks)`
+
+FAO-56 Rev.1 Equation 8.2, `ETc act = Ks × Kc × ET₀`, for the single crop
+coefficient approach.
+
+- `etoMm`: non-negative reference ET in mm/day.
+- `kc`: non-negative standard crop coefficient.
+- `ks`: water-stress coefficient from 0 through 1.
+- Returns actual crop evapotranspiration in mm/day.
+
+```js
+const etcActual = actualCropEvapotranspiration(5, 1.1, 0.75)
+```
+
+### `actualDualCropEvapotranspiration(etoMm, kcb, ke, ks)`
+
+FAO-56 Rev.1 Equation 8.1, `ETc act = (Ks × Kcb + Ke) × ET₀`. Water stress
+reduces crop transpiration but does not reduce evaporation from the soil.
+
+- `etoMm`: non-negative reference ET in mm/day.
+- `kcb`: non-negative basal crop coefficient.
+- `ke`: non-negative soil evaporation coefficient.
+- `ks`: water-stress coefficient from 0 through 1.
+- Returns actual crop evapotranspiration in mm/day.
+
+```js
+const etcActual = actualDualCropEvapotranspiration(5, 1, 0.1, 0.75)
+```
+
 ### `calculateCropEvapotranspiration(input)`
 
 Calculates staged Kc and ETc together.
@@ -703,6 +732,47 @@ const result = calculateCropEvapotranspiration({
   crop: 'tomato',
   cumulativeGdd: 1_100,
   climate: { windSpeed2mMps: 2.5, minRelativeHumidityPercent: 40 },
+})
+```
+
+### `calculateActualCropEvapotranspiration(input)`
+
+Combines staged single Kc, root-zone water stress, standard ETc, and actual ETc.
+
+| Field | Description |
+| --- | --- |
+| `etoMm` | Non-negative reference ET in mm/day |
+| `crop` | Profile ID or compatible custom profile |
+| `cumulativeGdd` | Thermal progress when sourced stages are available |
+| `day` | Calendar-day fallback |
+| `climate` | Optional Kc climate-adjustment fields |
+| `depletionMm` | Current root-zone depletion in mm |
+| `tawMm` | Total available water in mm |
+| `rawMm` | Readily available water in mm |
+
+Returns standard and stressed values without rounding:
+
+```js
+{
+  etcStandardMm,
+  etcActualMm,
+  kcStandard,
+  kcActual,
+  ks,
+  stage,
+  basis,
+  adjusted, // present when climate data were supplied
+}
+```
+
+```js
+const result = calculateActualCropEvapotranspiration({
+  etoMm: 5,
+  crop: 'tomato',
+  cumulativeGdd: 1_100,
+  depletionMm: 70,
+  tawMm: 100,
+  rawMm: 40,
 })
 ```
 
