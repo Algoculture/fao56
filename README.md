@@ -7,8 +7,10 @@ The scientific baseline is **FAO Irrigation and Drainage Paper 56, Rev.1
 (2025)**. Original 1998 equations and tables remain in use where Rev.1 retains
 them. The package uses `ETo` rather than the ambiguous term “potential ET/ETP”.
 
-> The package is currently `UNLICENSED` and is not published to the npm
-> registry. Choose a licence before distributing it outside its intended users.
+Original code and documentation are [MIT-licensed](LICENSE). Bundled
+FAO-derived data are separately licensed under CC BY 4.0; see
+[third-party notices](THIRD_PARTY_NOTICES.md). The package is not yet published
+to the npm registry.
 
 ## Install
 
@@ -219,6 +221,20 @@ Rev.1 table data are adapted from *Crop evapotranspiration — Guidelines for
 computing crop water requirements*, second edition, © FAO 2025, licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), DOI
 `10.4060/cd6621en`. Record-level metadata identifies the source table.
+See [third-party notices](THIRD_PARTY_NOTICES.md) for the scope of this license
+and a description of adaptations.
+
+## License and contributions
+
+Original code and documentation: [MIT](LICENSE), copyright © 2026 Algoculture
+contributors. Contributors retain copyright in their contributions.
+
+FAO-derived data: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
+as detailed in [third-party notices](THIRD_PARTY_NOTICES.md). The package's
+SPDX expression, `MIT AND CC-BY-4.0`, reflects these separately licensed
+components; it is not a choice of license for the FAO data.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and licensing guidance.
 
 ## Test
 
